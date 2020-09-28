@@ -54,7 +54,7 @@ spec:
       restartPolicy: Always
       containers:
       - name: php-pesbuk
-        image: smufti21/sosial-media
+        image: smufti21/staging-fb
         ports:
           - containerPort: 80
         volumeMounts:

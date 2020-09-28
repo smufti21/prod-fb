@@ -1,0 +1,84 @@
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: facebook-configmap
+  namespace: production
+data:
+  config.php: |
+        <?php
+        $db_host = ("database-1.caietkyjb9uv.ap-southeast-1.rds.amazonaws.com");
+        $db_user = ("root");
+        $db_pass = ("rootroot");
+        $db_name = ("dbdb");
+        try {
+        //create PDO connection
+        $db = new PDO("mysql:host=$db_host;dbname=$db_name", $db_user, $db_pass);
+        } catch(PDOException $e) {
+        //show error
+        die("Terjadi masalah: " . $e->getMessage());
+        }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: php-pesbuk
+  namespace: production
+  labels:
+    app: php-pesbuk
+spec:
+#  type: LoadBalancer
+  ports:
+  - port: 80
+    targetPort: 80
+    protocol: TCP
+    name: http
+  selector:
+    app: php-pesbuk
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: php-pesbuk
+  namespace: production
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: php-pesbuk
+  template:
+    metadata:
+      labels:
+        app: php-pesbuk
+    spec:
+      restartPolicy: Always
+      containers:
+      - name: php-pesbuk
+        image: smufti21/sosial-media
+        ports:
+          - containerPort: 80
+        volumeMounts:
+        - name: config
+          mountPath: "/usr/share/nginx/html/auth"
+      volumes:
+      - name: config
+        configMap:
+          name: facebook-configmap
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  namespace: production
+  name: pesbuk-ingress
+  annotations:
+#   nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+spec:
+  rules:
+  - host: pesbuk.sm21.xyz
+    http:
+      paths:
+      #- path: /
+      - backend:
+          serviceName: php-pesbuk
+          servicePort: 80
